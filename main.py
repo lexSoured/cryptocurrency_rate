@@ -1,14 +1,16 @@
 import tkinter as tk
 from tkinter import ttk
 import requests
+from PIL import Image, ImageTk
+from io import BytesIO
 
-target_code = ''
 currency_dict = {}  # Словарь для сопоставления ID и имени криптовалюты
 
 
 def generate_currency_list():
-    '''Функция для генерации списка названий криптовалют'''
+    """Функция для генерации списка названий криптовалют"""
     currency_names = []  # Инициализация пустого списка для хранения ID криптовалют
+
     # URL для получения списка криптовалют
     url = "https://api.coingecko.com/api/v3/coins/list"
     headers = {"accept": "application/json"}  # Заголовки для запроса
@@ -27,10 +29,9 @@ def generate_currency_list():
 
 
 def get_exchange_rate():
-    '''Функция для получения курса обмена криптовалюты'''
-    global target_code
-    # Получение выбранной криптовалюты и преобразование в нижний регистр
-    target_code = combobox_currency.get().lower()
+    """Функция для получения курса обмена криптовалюты"""
+    target_code = combobox_currency.get().lower(
+    )  # Получение выбранной криптовалюты и преобразование в нижний регистр
     if not target_code:
         label_entry.config(text='Неверное название валюты', font=(
             'Arial', 12), fg='red')  # Сообщение об ошибке, если поле пустое
@@ -40,6 +41,7 @@ def get_exchange_rate():
     if target_code in currency_dict:
         label_name.config(text=f'Выбранная криптовалюта: {
                           currency_dict[target_code]}', font=('Arial', 12), fg='black')
+        update_coin_image(target_code)
     else:
         label_name.config(text='Криптовалюта не найдена',
                           font=('Arial', 12), fg='red')
@@ -69,10 +71,39 @@ def get_exchange_rate():
                            ex}', font=('Arial', 12), fg='red')
 
 
+def update_coin_image(coin_id):
+    """Функция для обновления изображения криптовалюты"""
+    url = f"https://api.coingecko.com/api/v3/coins/{coin_id}"
+    headers = {"accept": "application/json"}  # Заголовки для запроса
+    try:
+        # Выполнение HTTP-запроса
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()  # Проверка на успешность запроса
+        data = response.json()  # Преобразование ответа в JSON-формат
+        # Получение ссылки на маленькое изображение
+        image_url = data.get('image', {}).get('thumb', '')
+        if image_url:
+            try:
+                response = requests.get(image_url)
+                response.raise_for_status()
+                img_data = BytesIO(response.content)  # Преобразование содержимого ответа в байты
+                # Изменение размера изображения
+                img = Image.open(img_data)  # Открытие изображения
+                img_tk = ImageTk.PhotoImage(img)
+                label_image.config(image=img_tk)
+                img.thumbnail((30,30), Image.Resampling.LANCZOS)  # Изменение размера изображения
+                # Сохранение ссылки на изображение, чтобы оно не было удалено сборщиком мусора
+                label_image.image = img_tk
+            except requests.RequestException as e:
+                print(f"Ошибка при загрузке изображения: {e}")
+    except requests.RequestException as e:
+        print(f"Ошибка при получении данных криптовалюты: {e}")
+
+
 # Создание главного окна приложения
 root = tk.Tk()
 root.title('Курсы обмена криптовалют')  # Установка заголовка окна
-root.geometry('500x250')  # Установка размеров окна
+root.geometry('500x350')  # Установка размеров окна
 
 # Генерация списка названий криптовалют
 currency_list = generate_currency_list()
@@ -93,6 +124,10 @@ combobox_currency.set('bitcoin')
 # Создание метки для отображения полного названия криптовалюты
 label_name = tk.Label(root)
 label_name.pack(padx=10, pady=10)  # Размещение метки в окне с отступами
+
+# Создание метки для отображения изображения криптовалюты
+label_image = tk.Label(root)
+label_image.pack(padx=10, pady=10)  # Размещение метки в окне с отступами
 
 # Создание метки для отображения результата
 label_entry = tk.Label(root)
