@@ -25,26 +25,26 @@ def generate_currency_lists():
         response.raise_for_status()  # Проверка на успешность запроса
         data = response.json()  # Преобразование ответа в JSON-формат
         for coin in data:
-            crypto_list.append(coin['id'])  # Извлечение ID криптовалюты
+            crypto_list.append(coin['name'])  # Извлечение ID криптовалюты
             # Сохранение имени криптовалюты в словаре
-            currency_dict[coin['id']] = coin['name']
+            currency_dict[coin['name']] = coin['id']
     except requests.RequestException as e:
         print(f"Ошибка при получении списка криптовалют: {e}")
 
 
 def get_exchange_rate():
     """Функция для получения курса обмена криптовалюты"""
-    base_code = combobox_crypto.get().lower()  # Получение выбранной криптовалюты
+    base_name = combobox_crypto.get()  # Получение выбранной криптовалюты
     target_code = combobox_fiat.get().lower()  # Получение выбранной фиатной валюты
 
-    if not base_code or not target_code:
+    if not base_name or not target_code:
         label_entry.config(text='Неверное название валюты',
                            font=('Arial', 12), fg='red')
         return
-
+    base_code = currency_dict.get(base_name)
     # Обновление метки с полным названием криптовалюты
-    if base_code in currency_dict:
-        label_name.config(text=f'Выбранная криптовалюта: {currency_dict[base_code]}',
+    if base_code :
+        label_name.config(text=f'Выбранная криптовалюта: {base_name}',
                           font=('Arial', 12), fg='black')
         update_coin_image(base_code)
         update_flag(target_code)
