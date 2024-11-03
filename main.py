@@ -152,6 +152,7 @@ root.geometry(f'600x500+{root.winfo_screenwidth()//
 root.config(bg='#0d1217', borderwidth=12, padx=20,
             pady=20)  # Настройка фона и границ окна
 # Генерация списков названий криптовалют и фиатных валют
+root.iconbitmap("imgs/logo.ico") #Иконка приложения
 generate_currency_lists()
 # Настройка веса колонок и строк для правильного расположения элементов
 root.grid_columnconfigure(0, weight=1)
