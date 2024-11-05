@@ -3,6 +3,7 @@ from tkinter import ttk, messagebox
 import requests
 from PIL import Image, ImageTk
 from io import BytesIO
+import os
 
 # Словарь для сопоставления ID и имени криптовалюты
 currency_dict = {}
@@ -133,11 +134,18 @@ def update_flag(src):
 
 def filter_currencies(event, combobox, crypto_list):
     '''Функция фильтрует варианты в выпадающем списке по введенному тексту'''
-    # Преобразуем введенный текст в нижний регистр
-    search_text = event.widget.get().lower()
-    filtered_list = [
-        f'{coin}' for coin in crypto_list if search_text in coin.lower()]
-    combobox['values'] = filtered_list
+    # Получаем введенный текст
+    search_text = event.widget.get().strip().lower()
+    
+    # Проверяем, не пустой ли введенный текст
+    if not search_text:
+        # Если текст пустой, сбрасываем список к исходному состоянию
+        combobox['values'] = crypto_list
+    else:
+        # Фильтруем список криптовалют
+        filtered_list = [coin for coin in crypto_list if search_text in coin.lower()]
+        combobox['values'] = filtered_list
+    
     # Автоматическое открытие выпадающего списка
     combobox.event_generate('<Down>')
 
@@ -147,12 +155,18 @@ root = tk.Tk()
 
 root.title('Курсы обмена криптовалют')  # Установка заголовка окна
 # Установка размеров и позиции окна
-root.geometry(f'600x500+{root.winfo_screenwidth()//
+root.geometry(f'600x500+{root.winfo_screenwidth() //
               2 - 300}+{root.winfo_screenheight()//2-250}')
 root.config(bg='#0d1217', borderwidth=12, padx=20,
             pady=20)  # Настройка фона и границ окна
+
+# Проверка наличия иконки в папке
+icon_path = "imgs/logo.ico"
+if os.path.exists(icon_path):
+    root.iconbitmap(icon_path)
+else:
+    pass
 # Генерация списков названий криптовалют и фиатных валют
-root.iconbitmap("imgs/logo.ico") #Иконка приложения
 generate_currency_lists()
 # Настройка веса колонок и строк для правильного расположения элементов
 root.grid_columnconfigure(0, weight=1)
