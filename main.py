@@ -5,12 +5,12 @@ from PIL import Image, ImageTk
 from io import BytesIO
 import os
 
-# Словарь для сопоставления ID и имени криптовалюты
+# Словарь для сопоставления ID и имени - символа криптовалюты
 currency_dict = {}
 # Список фиатных валют
 fiat_list = ['USD', 'EUR', 'RUB']
-# Список криптовалют
-crypto_list = []
+# Множество криптовалют
+crypto_list = set()
 
 
 def generate_currency_lists():
@@ -26,10 +26,11 @@ def generate_currency_lists():
         response.raise_for_status()  # Проверка на успешность запроса
         data = response.json()  # Преобразование ответа в JSON-формат
         for coin in data:
-            # Добавление названия криптовалюты в список
-            crypto_list.append(coin['name'])
-            # Сохранение имени криптовалюты в словаре для дальнейшего использования
-            currency_dict[coin['name']] = coin['id']
+            # Добавление названия криптовалюты в множество
+            crypto_list.add(f'{coin['name']} ({coin['symbol']})')
+            # Сохранение имени и id криптовалюты в словаре для дальнейшего использования
+            currency_dict[coin['symbol']] = (coin['name'], coin['id'])
+
     except requests.RequestException as e:
         messagebox.showerror(
             'Ошибка', f'Ошибка при получении списка криптовалют: {e}')
@@ -37,16 +38,19 @@ def generate_currency_lists():
 
 def get_exchange_rate(event=None):
     '''Функция для получения курса обмена криптовалюты'''
-    base_name = combobox_crypto.get()  # Получение выбранной криптовалюты
+    base_name_symbol = combobox_crypto.get()  # Получение выбранной криптовалюты в формате "Name (Symbol)"
     target_code = combobox_fiat.get().lower()  # Получение выбранной фиатной валюты
 
-    if not base_name or not target_code:
+    if not base_name_symbol or not target_code:
         messagebox.showwarning('Предупреждение', 'Неверное название валюты')
         return
-    base_code = currency_dict.get(base_name)
+    # Извлечение символа из строки "Name (Symbol)"
+    base_symbol = base_name_symbol.split('(')[-1].replace(')','').strip()
+    # Извлечение ID криптовалюты из словаря по символу. Если символ не найден, возращается None
+    base_code = currency_dict.get(base_symbol, (None, None))[1]
     # Обновление меток с полными названиями выбранных валют
     if base_code:
-        label_name.config(text=f'Выбранная криптовалюта:\n {base_name}')
+        label_name.config(text=f'Выбранная криптовалюта:\n {base_name_symbol}')
         label_name2.config(text=f'Выбранная фиатная валюта:\n {
                            target_code.upper()}')
 
@@ -137,10 +141,10 @@ def filter_currencies(event, combobox, crypto_list):
     # Получаем введенный текст
     search_text = event.widget.get().strip().lower()
     
-    # Проверяем, не пустой ли введенный текст
-    if not search_text:
-        # Если текст пустой, сбрасываем список к исходному состоянию
-        combobox['values'] = crypto_list
+    # Проверяем, не пустой ли введенный текст и его длина
+    if not search_text or len(search_text) < 3:
+        # Если текст пустой или его длина меньше 3 символов, сбрасываем список к исходному состоянию
+        combobox['values'] = list(crypto_list)
     else:
         # Фильтруем список криптовалют
         filtered_list = [coin for coin in crypto_list if search_text in coin.lower()]
@@ -168,6 +172,7 @@ else:
     pass
 # Генерация списков названий криптовалют и фиатных валют
 generate_currency_lists()
+crypto_list_list = list(crypto_list)
 # Настройка веса колонок и строк для правильного расположения элементов
 root.grid_columnconfigure(0, weight=1)
 root.grid_columnconfigure(1, weight=1)
@@ -234,7 +239,7 @@ style.configure(
 )
 
 # Создание выпадающего списка для выбора криптовалюты
-combobox_crypto = ttk.Combobox(root, style='TCombobox', values=crypto_list,
+combobox_crypto = ttk.Combobox(root, style='TCombobox', values=crypto_list_list,
                                width=30, justify='center', font=('Roboto', 12, 'bold'))
 # Размещение выпадающего списка в окне с отступами
 combobox_crypto.grid(column=0, row=1, pady=15, padx=10, sticky='nw')
@@ -244,7 +249,7 @@ combobox_crypto.set('Idena')
 combobox_crypto.bind('<Return>', get_exchange_rate)
 # Привязка функции фильтрации к событию отпускания клавиш
 combobox_crypto.bind('<KeyRelease>', lambda event: filter_currencies(
-    event, combobox_crypto, crypto_list))
+    event, combobox_crypto, crypto_list_list))
 
 # Создание выпадающего списка для выбора фиатной валюты
 combobox_fiat = ttk.Combobox(
